@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interval & Chord Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #12151d;
+    --card: #1b202b;
+    --card-raised: #222834;
+    --line: #313a4a;
+    --staff: #262d3b;
+    --parchment: #ece6d6;
+    --muted: #8b93a6;
+    --brass: #c9982e;
+    --brass-dim: #8a6c26;
+    --good: #6fae7d;
+    --bad: #c96b6b;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--ink);
+    background-image:
+      linear-gradient(var(--staff) 1px, transparent 1px);
+    background-size: 100% 42px;
+    color: var(--parchment);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+  }
+  .app{ max-width: 720px; margin: 0 auto; }
+  header{ text-align:center; margin-bottom: 34px; }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    letter-spacing: 0.28em;
+    font-size: 11px;
+    color: var(--brass);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: clamp(30px, 5vw, 42px);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle{ color: var(--muted); font-size: 14.5px; max-width: 480px; margin: 0 auto; line-height:1.5; }
+
+  .tabs{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    background: var(--line);
+    border-radius: 10px;
+    padding: 3px;
+    margin: 0 auto 22px;
+    max-width: 480px;
+  }
+  .tab-btn{
+    flex: 1 1 45%;
+    padding: 11px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--muted);
+    font-family:'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+  .tab-btn.active{ background: var(--card-raised); color: var(--parchment); }
+  .tab-btn:hover:not(.active){ color: var(--parchment); }
+
+  .filter-panel{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .filter-toggle{
+    width:100%;
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 13px 16px;
+    background: none;
+    border:none;
+    color: var(--parchment);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .filter-toggle .count{ color: var(--brass); margin-left: 6px; }
+  .filter-toggle .chev{ color: var(--muted); transition: transform .15s ease; font-size: 11px; }
+  .filter-toggle.open .chev{ transform: rotate(180deg); }
+  .filter-body{
+    display:none;
+    padding: 4px 16px 16px;
+    border-top: 1px solid var(--line);
+  }
+  .filter-body.open{ display:block; }
+  .filter-actions{ display:flex; gap:8px; margin: 12px 0 14px; }
+  .filter-actions button{
+    background: var(--card-raised);
+    border: 1px solid var(--line);
+    color: var(--parchment);
+    font-family:'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .filter-actions button:hover{ border-color: var(--brass-dim); }
+  .checkbox-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  .checkbox-row{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    padding: 7px 9px;
+    background: var(--card-raised);
+    border-radius: 7px;
+    border: 1px solid transparent;
+    cursor:pointer;
+    font-size: 13px;
+    user-select:none;
+  }
+  .checkbox-row:hover{ border-color: var(--line); }
+  .checkbox-row input{ accent-color: var(--brass); width:15px; height:15px; }
+
+  .quiz-card{
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 24px 24px;
+    position: relative;
+  }
+  .score-row{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 22px;
+    letter-spacing: 0.03em;
+  }
+  .score-row .reset-btn{
+    background:none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor:pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+  }
+  .score-row .reset-btn:hover{ color: var(--parchment); border-color: var(--brass-dim); }
+
+  .prompt-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--brass);
+    text-align:center;
+    margin-bottom: 10px;
+  }
+  .prompt{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(30px, 6vw, 44px);
+    text-align:center;
+    margin-bottom: 26px;
+    min-height: 54px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 14px;
+  }
+  .prompt .plus{ color: var(--brass); font-size: 0.5em; }
+  .empty-note{
+    font-family:'Inter', sans-serif;
+    font-size: 15px;
+    color: var(--muted);
+    text-align:center;
+    padding: 30px 10px;
+  }
+
+  .answer-form{ display:flex; gap:10px; margin-bottom: 8px; }
+  .answer-form input{
+    flex:1;
+    background: var(--ink);
+    border: 1.5px solid var(--line);
+    border-radius: 9px;
+    padding: 13px 16px;
+    color: var(--parchment);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    outline: none;
+  }
+  .answer-form input:focus{ border-color: var(--brass); }
+  .answer-form input::placeholder{ color: #565f72; }
+  .btn{
+    background: var(--brass);
+    border: none;
+    color: #1a1608;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 0 22px;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  .btn:hover{ background: #ddac3a; }
+  .btn:disabled{ opacity: 0.4; cursor: default; }
+  .btn-ghost{
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 0 16px;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  .btn-ghost:hover{ color: var(--parchment); border-color: var(--brass-dim); }
+  .controls-row{ display:flex; gap:10px; margin-top: 10px; }
+
+  .feedback{
+    margin-top: 18px;
+    padding: 13px 16px;
+    border-radius: 9px;
+    font-size: 14px;
+    line-height: 1.5;
+    display:none;
+  }
+  .feedback.show{ display:block; }
+  .feedback.correct{ background: rgba(111,174,125,0.12); border: 1px solid rgba(111,174,125,0.35); color: var(--good); }
+  .feedback.incorrect{ background: rgba(201,107,107,0.12); border: 1px solid rgba(201,107,107,0.35); color: var(--bad); }
+  .feedback b{ font-family:'IBM Plex Mono', monospace; }
+
+  .hint{ text-align:center; color: var(--muted); font-size: 12px; margin-top: 16px; }
+
+  .fretboard-wrap{ display:none; margin-bottom: 8px; }
+  .fretboard-wrap.show{ display:block; }
+  .fretboard{
+    background: var(--card-raised);
+    border-radius: 12px;
+    padding: 14px 8px 6px;
+    overflow-x: auto;
+  }
+  .fret-string-row{
+    display:flex;
+    align-items:center;
+    position:relative;
+  }
+  .fret-string-row::before{
+    content:'';
+    position:absolute;
+    left:56px; right:6px; top:50%;
+    height:1px;
+    background: var(--line);
+    z-index:0;
+  }
+  .fret-string-row.target-row .string-label{ color: var(--brass); font-weight:700; }
+  .string-label{
+    width: 56px;
+    flex-shrink:0;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align:right;
+    padding-right: 8px;
+    z-index:1;
+  }
+  .fret-cell{
+    flex:1;
+    min-width: 30px;
+    height: 34px;
+    border-right: 1px solid var(--line);
+    background: transparent;
+    border-top:none; border-bottom:none; border-left:none;
+    cursor:pointer;
+    position:relative;
+    z-index:1;
+    padding:0;
+  }
+  .fret-cell.nut{ border-right: 3px solid var(--parchment); }
+  .fret-cell:hover:not(.correct):not(.incorrect){ background: rgba(201,152,46,0.16); }
+  .fret-string-row.target-row .fret-cell{ background: rgba(201,152,46,0.07); }
+  .fret-string-row.target-row .fret-cell:hover:not(.correct):not(.incorrect){ background: rgba(201,152,46,0.22); }
+  .fret-cell.correct{ background: var(--good) !important; }
+  .fret-cell.incorrect{ background: var(--bad) !important; }
+  .fret-cell.reveal-correct{ outline: 2px solid var(--brass); outline-offset: -2px; }
+  .fret-marker-row{ display:flex; margin-top: 6px; }
+  .fret-marker-cell{
+    flex:1;
+    min-width: 30px;
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .fret-marker-cell .dot{
+    display:block;
+    width:5px; height:5px;
+    border-radius:50%;
+    background: var(--brass-dim);
+    margin: 3px auto 2px;
+  }
+
+  @media (max-width: 480px){
+    .checkbox-grid{ grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); }
+    .answer-form{ flex-direction: column; }
+    .btn{ padding: 13px; }
+    .string-label{ width: 40px; font-size: 9.5px; }
+    .fret-cell{ min-width: 22px; }
+    .fret-marker-cell{ min-width: 22px; font-size: 8.5px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="eyebrow">Ear-free theory drills</div>
+    <h1>Interval &amp; Chord Trainer</h1>
+    <p class="subtitle">Spell chords and intervals correctly by letter name — the same skill that lets you move a CAGED shape anywhere on the neck without guessing.</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabChord">Chord Builder</button>
+    <button class="tab-btn" id="tabInterval">Interval Quiz</button>
+    <button class="tab-btn" id="tabFretboard">Fretboard Finder</button>
+    <button class="tab-btn" id="tabCaged">CAGED Locator</button>
+  </div>
+
+  <div class="filter-panel">
+    <button class="filter-toggle open" id="filterToggle">
+      <span>Filter <span class="count" id="filterCount"></span></span>
+      <span class="chev">&#9660;</span>
+    </button>
+    <div class="filter-body open" id="filterBody">
+      <div class="filter-actions">
+        <button id="selectAllBtn">Select all</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+      <div class="checkbox-grid" id="checkboxGrid"></div>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="score-row">
+      <span id="scoreText">Correct 0 / 0 &nbsp;·&nbsp; Streak 0</span>
+      <button class="reset-btn" id="resetScoreBtn">Reset score</button>
+    </div>
+
+    <div id="quizBody">
+      <div class="prompt-label" id="promptLabel">Build the chord</div>
+      <div class="prompt" id="promptText">—</div>
+      <div class="answer-form" id="answerForm">
+        <input type="text" id="answerInput" placeholder="e.g. C E G" autocomplete="off" spellcheck="false">
+        <button class="btn" id="checkBtn">Check</button>
+      </div>
+      <div class="fretboard-wrap" id="fretboardWrap">
+        <div class="fretboard" id="fretboardGrid"></div>
+      </div>
+      <div class="controls-row">
+        <button class="btn-ghost" id="skipBtn">Skip / Next</button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <p class="hint" id="hintText">Use # for sharp and b for flat. Enter root, then 3rd, then 5th, separated by spaces.</p>
+  </div>
+</div>
+
+<script>
+const LETTERS = ['C','D','E','F','G','A','B'];
+const LETTER_SEMITONES = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+
+const ROOT_POOL = [
+  {letter:'C',acc:0}, {letter:'C',acc:1}, {letter:'D',acc:-1},
+  {letter:'D',acc:0}, {letter:'D',acc:1}, {letter:'E',acc:-1},
+  {letter:'E',acc:0}, {letter:'F',acc:0}, {letter:'F',acc:1},
+  {letter:'G',acc:-1}, {letter:'G',acc:0}, {letter:'G',acc:1},
+  {letter:'A',acc:-1}, {letter:'A',acc:0}, {letter:'A',acc:1},
+  {letter:'B',acc:-1}, {letter:'B',acc:0}
+];
+
+function noteToString(n){
+  if(n.acc===0) return n.letter;
+  return n.letter + (n.acc>0 ? '#'.repeat(n.acc) : 'b'.repeat(-n.acc));
+}
+
+function transpose(root, steps, semi){
+  const rootIdx = LETTERS.indexOf(root.letter);
+  const newIdx = ((rootIdx + steps) % 7 + 7) % 7;
+  const newLetter = LETTERS[newIdx];
+  const naturalSemi = LETTER_SEMITONES[newLetter];
+  const rootAbs = LETTER_SEMITONES[root.letter] + root.acc;
+  const targetAbs = rootAbs + semi;
+  let diff = (((targetAbs - naturalSemi) % 12) + 12) % 12;
+  const acc = diff <= 6 ? diff : diff - 12;
+  return {letter:newLetter, acc};
+}
+
+function parseNoteInput(str){
+  if(!str) return null;
+  str = str.trim();
+  if(!str) return null;
+  const letter = str[0].toUpperCase();
+  if(!LETTERS.includes(letter)) return null;
+  const rest = str.slice(1).toLowerCase().replace(/\s/g,'');
+  let acc = 0;
+  for(const ch of rest){
+    if(ch === '#' || ch === 's') acc += 1;
+    else if(ch === 'b') acc -= 1;
+    else return null;
+  }
+  return {letter, acc};
+}
+
+function notesEqual(a,b){ return a.letter===b.letter && a.acc===b.acc; }
+
+// Standard tuning, low string to high string
+const STRINGS = {
+  lowE:  {label:'Low E (6th string)',  short:'Low E', open:{letter:'E',acc:0}},
+  A:     {label:'A (5th string)',      short:'A',     open:{letter:'A',acc:0}},
+  D:     {label:'D (4th string)',      short:'D',     open:{letter:'D',acc:0}},
+  G:     {label:'G (3rd string)',      short:'G',     open:{letter:'G',acc:0}},
+  B:     {label:'B (2nd string)',      short:'B',     open:{letter:'B',acc:0}},
+  highE: {label:'High E (1st string)', short:'High E',open:{letter:'E',acc:0}}
+};
+const STRING_ORDER = ['highE','B','G','D','A','lowE'];
+const NUM_FRETS_SHOWN = 12;
+const FRET_MARKERS = {3:1, 5:1, 7:1, 9:1, 12:2};
+
+// Which reference string each CAGED shape's root sits on
+const CAGED_SHAPES = {
+  C: {label:'C shape', stringKey:'A'},
+  A: {label:'A shape', stringKey:'A'},
+  G: {label:'G shape', stringKey:'lowE'},
+  E: {label:'E shape', stringKey:'lowE'},
+  D: {label:'D shape', stringKey:'D'}
+};
+
+// Fret (0-11) where a target note lands on a given open string
+function fretForNote(openNote, target){
+  const openAbs = LETTER_SEMITONES[openNote.letter] + openNote.acc;
+  const targetAbs = LETTER_SEMITONES[target.letter] + target.acc;
+  return ((targetAbs - openAbs) % 12 + 12) % 12;
+}
+
+// Accepts any fret number that lands on the same pitch class (e.g. 3, 15 both valid if answer is 3)
+function parseFretInput(str, answerFret){
+  if(!str) return false;
+  const cleaned = str.trim().toLowerCase();
+  if(cleaned === 'open' || cleaned === 'open string' || cleaned === 'nut'){
+    return answerFret === 0;
+  }
+  const n = parseInt(cleaned, 10);
+  if(isNaN(n) || n < 0 || n > 24) return false;
+  return (n % 12) === answerFret;
+}
+
+// Chord types: tones are extra notes above the root (letter steps + semitones).
+// format(rootStr) controls how the prompt is displayed (e.g. "CM7" vs "C Major").
+const CHORD_TYPES = {
+  major:      {label:'Major',                    format:(r)=>`${r} Major`,      tones:[{steps:2, semi:4},{steps:4, semi:7}]},
+  minor:      {label:'Minor',                    format:(r)=>`${r} Minor`,      tones:[{steps:2, semi:3},{steps:4, semi:7}]},
+  diminished: {label:'Diminished',                format:(r)=>`${r} Diminished`,tones:[{steps:2, semi:3},{steps:4, semi:6}]},
+  augmented:  {label:'Augmented',                 format:(r)=>`${r} Augmented`, tones:[{steps:2, semi:4},{steps:4, semi:8}]},
+  majMaj7:    {label:'Major 7th (CM7)',           format:(r)=>`${r}M7`,         tones:[{steps:2, semi:4},{steps:4, semi:7},{steps:6, semi:11}]},
+  majMin7:    {label:'Dominant 7th (C7)',         format:(r)=>`${r}7`,          tones:[{steps:2, semi:4},{steps:4, semi:7},{steps:6, semi:10}]},
+  minMaj7:    {label:'Minor-Major 7th (Cm/maj7)', format:(r)=>`${r}m/maj7`,     tones:[{steps:2, semi:3},{steps:4, semi:7},{steps:6, semi:11}]},
+  minMin7:    {label:'Minor 7th (Cm7)',           format:(r)=>`${r}m7`,         tones:[{steps:2, semi:3},{steps:4, semi:7},{steps:6, semi:10}]}
+};
+
+// Interval types: [label, letterSteps, semitones]
+const INTERVAL_TYPES = {
+  m2: {label:'Minor 2nd',  steps:1, semi:1},
+  M2: {label:'Major 2nd',  steps:1, semi:2},
+  m3: {label:'Minor 3rd',  steps:2, semi:3},
+  M3: {label:'Major 3rd',  steps:2, semi:4},
+  P4: {label:'Perfect 4th',steps:3, semi:5},
+  TT: {label:'Tritone',    steps:3, semi:6},
+  P5: {label:'Perfect 5th',steps:4, semi:7},
+  m6: {label:'Minor 6th',  steps:5, semi:8},
+  M6: {label:'Major 6th',  steps:5, semi:9},
+  m7: {label:'Minor 7th',  steps:6, semi:10},
+  M7: {label:'Major 7th',  steps:6, semi:11},
+  P8: {label:'Octave',     steps:0, semi:12}
+};
+
+// Generic filter-map format so the same filter panel works for every mode: key -> {label}
+const STRING_FILTER_MAP = STRINGS;
+const CAGED_FILTER_MAP = CAGED_SHAPES;
+
+let mode = 'chord'; // 'chord' | 'interval' | 'fretboard' | 'caged'
+let chordEnabled = new Set(Object.keys(CHORD_TYPES));
+let intervalEnabled = new Set(Object.keys(INTERVAL_TYPES));
+let fretboardEnabled = new Set(Object.keys(STRING_FILTER_MAP));
+let cagedEnabled = new Set(Object.keys(CAGED_FILTER_MAP));
+let current = null; // {answerType, answer, display, ...}
+let score = {correct:0, total:0, streak:0};
+let answered = false;
+
+const els = {
+  tabChord: document.getElementById('tabChord'),
+  tabInterval: document.getElementById('tabInterval'),
+  tabFretboard: document.getElementById('tabFretboard'),
+  tabCaged: document.getElementById('tabCaged'),
+  filterToggle: document.getElementById('filterToggle'),
+  filterBody: document.getElementById('filterBody'),
+  filterCount: document.getElementById('filterCount'),
+  checkboxGrid: document.getElementById('checkboxGrid'),
+  selectAllBtn: document.getElementById('selectAllBtn'),
+  clearBtn: document.getElementById('clearBtn'),
+  scoreText: document.getElementById('scoreText'),
+  resetScoreBtn: document.getElementById('resetScoreBtn'),
+  promptLabel: document.getElementById('promptLabel'),
+  promptText: document.getElementById('promptText'),
+  answerInput: document.getElementById('answerInput'),
+  checkBtn: document.getElementById('checkBtn'),
+  skipBtn: document.getElementById('skipBtn'),
+  feedback: document.getElementById('feedback'),
+  hintText: document.getElementById('hintText'),
+  quizBody: document.getElementById('quizBody'),
+  answerForm: document.getElementById('answerForm'),
+  fretboardWrap: document.getElementById('fretboardWrap'),
+  fretboardGrid: document.getElementById('fretboardGrid')
+};
+
+function currentTypeMap(){
+  if(mode === 'chord') return CHORD_TYPES;
+  if(mode === 'interval') return INTERVAL_TYPES;
+  if(mode === 'fretboard') return STRING_FILTER_MAP;
+  return CAGED_FILTER_MAP;
+}
+function currentEnabledSet(){
+  if(mode === 'chord') return chordEnabled;
+  if(mode === 'interval') return intervalEnabled;
+  if(mode === 'fretboard') return fretboardEnabled;
+  return cagedEnabled;
+}
+
+function renderFilters(){
+  const types = currentTypeMap();
+  const enabled = currentEnabledSet();
+  els.checkboxGrid.innerHTML = '';
+  Object.keys(types).forEach(key => {
+    const row = document.createElement('label');
+    row.className = 'checkbox-row';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = enabled.has(key);
+    cb.addEventListener('change', () => {
+      if(cb.checked) enabled.add(key); else enabled.delete(key);
+      updateFilterCount();
+    });
+    const span = document.createElement('span');
+    span.textContent = types[key].label;
+    row.appendChild(cb);
+    row.appendChild(span);
+    els.checkboxGrid.appendChild(row);
+  });
+  updateFilterCount();
+}
+
+function updateFilterCount(){
+  const enabled = currentEnabledSet();
+  const types = currentTypeMap();
+  els.filterCount.textContent = `(${enabled.size}/${Object.keys(types).length})`;
+}
+
+function updateScoreText(){
+  els.scoreText.textContent = `Correct ${score.correct} / ${score.total} \u00B7 Streak ${score.streak}`;
+}
+
+function randomFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function buildFretboardDOM(){
+  els.fretboardGrid.innerHTML = '';
+  STRING_ORDER.forEach(stringKey => {
+    const row = document.createElement('div');
+    row.className = 'fret-string-row';
+    row.dataset.string = stringKey;
+    const label = document.createElement('div');
+    label.className = 'string-label';
+    label.textContent = STRINGS[stringKey].short;
+    row.appendChild(label);
+    for(let fret = 0; fret <= NUM_FRETS_SHOWN; fret++){
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'fret-cell' + (fret === 0 ? ' nut' : '');
+      cell.dataset.string = stringKey;
+      cell.dataset.fret = fret;
+      cell.addEventListener('click', onFretCellClick);
+      row.appendChild(cell);
+    }
+    els.fretboardGrid.appendChild(row);
+  });
+
+  const markerRow = document.createElement('div');
+  markerRow.className = 'fret-marker-row';
+  const spacer = document.createElement('div');
+  spacer.className = 'string-label';
+  markerRow.appendChild(spacer);
+  for(let fret = 0; fret <= NUM_FRETS_SHOWN; fret++){
+    const cell = document.createElement('div');
+    cell.className = 'fret-marker-cell';
+    const dots = FRET_MARKERS[fret];
+    let dotsHTML = '';
+    for(let i=0; i<(dots||0); i++) dotsHTML += '<span class="dot"></span>';
+    cell.innerHTML = dotsHTML + fret;
+    markerRow.appendChild(cell);
+  }
+  els.fretboardGrid.appendChild(markerRow);
+}
+
+function resetFretboardVisuals(targetStringKey){
+  els.fretboardGrid.querySelectorAll('.fret-cell').forEach(c => {
+    c.classList.remove('correct','incorrect','reveal-correct');
+  });
+  els.fretboardGrid.querySelectorAll('.fret-string-row').forEach(r => {
+    r.classList.toggle('target-row', r.dataset.string === targetStringKey);
+  });
+}
+
+function onFretCellClick(e){
+  if(!current || answered || current.answerType !== 'fretclick') return;
+  answered = true;
+  const stringKey = e.currentTarget.dataset.string;
+  const fret = parseInt(e.currentTarget.dataset.fret, 10);
+  const correctFret = current.answer;
+  const isRightFret = fret === correctFret || (correctFret === 0 && fret === NUM_FRETS_SHOWN);
+  const isCorrect = stringKey === current.targetStringKey && isRightFret;
+
+  e.currentTarget.classList.add(isCorrect ? 'correct' : 'incorrect');
+  if(!isCorrect){
+    const correctCell = els.fretboardGrid.querySelector(
+      `.fret-cell[data-string="${current.targetStringKey}"][data-fret="${correctFret}"]`
+    );
+    if(correctCell) correctCell.classList.add('reveal-correct');
+  }
+
+  score.total += 1;
+  if(isCorrect){ score.correct += 1; score.streak += 1; }
+  else{ score.streak = 0; }
+  updateScoreText();
+
+  els.feedback.className = 'feedback show ' + (isCorrect ? 'correct' : 'incorrect');
+  els.feedback.innerHTML = isCorrect
+    ? `Correct — <b>${current.display.join(' ')}</b>`
+    : `Not quite. Correct answer: <b>${current.display.join(' ')}</b>`;
+}
+
+function setInputMode(isClickMode){
+  els.answerForm.style.display = isClickMode ? 'none' : 'flex';
+  els.fretboardWrap.classList.toggle('show', isClickMode);
+}
+
+function newQuestion(){
+  answered = false;
+  els.answerInput.value = '';
+  els.answerInput.disabled = false;
+  els.checkBtn.disabled = false;
+  els.feedback.className = 'feedback';
+  els.feedback.textContent = '';
+
+  const isClickMode = (mode === 'fretboard' || mode === 'caged');
+  setInputMode(isClickMode);
+  if(!isClickMode) els.answerInput.focus();
+
+  const enabled = Array.from(currentEnabledSet());
+  if(enabled.length === 0){
+    const emptyLabels = {chord:'Build the chord', interval:'Name the note', fretboard:'Find the fret', caged:'Locate the shape'};
+    els.promptLabel.textContent = emptyLabels[mode];
+    els.promptText.textContent = '—';
+    els.feedback.className = 'feedback show incorrect';
+    els.feedback.textContent = 'Select at least one type in the filter above to start.';
+    els.answerInput.disabled = true;
+    els.checkBtn.disabled = true;
+    if(isClickMode) resetFretboardVisuals(null);
+    current = null;
+    return;
+  }
+
+  const root = randomFrom(ROOT_POOL);
+
+  if(mode === 'chord'){
+    const typeKey = randomFrom(enabled);
+    const type = CHORD_TYPES[typeKey];
+    const extras = type.tones.map(t => transpose(root, t.steps, t.semi));
+    const notes = [root, ...extras];
+    current = {
+      answerType: 'chord',
+      answer: notes,
+      display: notes.map(noteToString)
+    };
+    els.promptLabel.textContent = 'Build the chord';
+    els.promptText.textContent = type.format(noteToString(root));
+    els.answerInput.placeholder = notes.length === 4 ? 'e.g. C E G B' : 'e.g. C E G';
+    els.hintText.textContent = `Use # for sharp and b for flat. Enter all ${notes.length} notes in order, separated by spaces.`;
+
+  } else if(mode === 'interval'){
+    const typeKey = randomFrom(enabled);
+    const type = INTERVAL_TYPES[typeKey];
+    const target = transpose(root, type.steps, type.semi);
+    current = {
+      answerType: 'note',
+      answer: target,
+      display: [noteToString(target)]
+    };
+    els.promptLabel.textContent = 'Name the resulting note';
+    els.promptText.innerHTML = `${noteToString(root)} <span class="plus">+</span> ${type.label}`;
+    els.answerInput.placeholder = 'e.g. F#';
+    els.hintText.textContent = 'Use # for sharp and b for flat. Enter a single note name.';
+
+  } else if(mode === 'fretboard'){
+    const stringKey = randomFrom(enabled);
+    const stringObj = STRINGS[stringKey];
+    const fret = fretForNote(stringObj.open, root);
+    current = {
+      answerType: 'fretclick',
+      targetStringKey: stringKey,
+      answer: fret,
+      display: [fret === 0 ? `Open string on ${stringObj.short}` : `Fret ${fret} on ${stringObj.short}`]
+    };
+    els.promptLabel.textContent = 'Tap the note on the highlighted string';
+    els.promptText.innerHTML = `${noteToString(root)} <span class="plus">on</span> ${stringObj.label}`;
+    els.hintText.textContent = 'Tap the fret on the gold-highlighted string where this note lives. Fret 0 is the open string (nut).';
+    resetFretboardVisuals(stringKey);
+
+  } else if(mode === 'caged'){
+    const shapeKey = randomFrom(enabled);
+    const shape = CAGED_SHAPES[shapeKey];
+    const stringObj = STRINGS[shape.stringKey];
+    const quality = Math.random() < 0.5 ? 'major' : 'minor';
+    const fret = fretForNote(stringObj.open, root);
+    current = {
+      answerType: 'fretclick',
+      targetStringKey: shape.stringKey,
+      answer: fret,
+      display: [`${fret === 0 ? 'Open position (fret 0)' : 'Fret ' + fret} on the ${stringObj.label}`]
+    };
+    els.promptLabel.textContent = 'Tap where you\u2019d barre this shape';
+    els.promptText.innerHTML = `${noteToString(root)} ${quality} <span class="plus">using</span> ${shape.label}`;
+    els.hintText.textContent = `Tap the fret on the highlighted ${stringObj.short} string \u2014 that's the ${shape.label}'s reference string.`;
+    resetFretboardVisuals(shape.stringKey);
+  }
+}
+
+function checkAnswer(){
+  if(!current || answered) return;
+  const raw = els.answerInput.value.trim();
+  if(!raw) return;
+  answered = true;
+  els.answerInput.disabled = true;
+  els.checkBtn.disabled = true;
+
+  let isCorrect = false;
+  if(current.answerType === 'chord'){
+    const tokens = raw.split(/[\s,\/]+/).filter(Boolean);
+    if(tokens.length === current.answer.length){
+      isCorrect = tokens.every((tok, i) => {
+        const parsed = parseNoteInput(tok);
+        return parsed && notesEqual(parsed, current.answer[i]);
+      });
+    }
+  } else if(current.answerType === 'note'){
+    const parsed = parseNoteInput(raw);
+    isCorrect = !!parsed && notesEqual(parsed, current.answer);
+  }
+
+  score.total += 1;
+  if(isCorrect){
+    score.correct += 1;
+    score.streak += 1;
+    els.feedback.className = 'feedback show correct';
+    els.feedback.innerHTML = `Correct — <b>${current.display.join(' ')}</b>`;
+  } else {
+    score.streak = 0;
+    els.feedback.className = 'feedback show incorrect';
+    els.feedback.innerHTML = `Not quite. Correct answer: <b>${current.display.join(' ')}</b>`;
+  }
+  updateScoreText();
+}
+
+function setMode(newMode){
+  mode = newMode;
+  els.tabChord.classList.toggle('active', mode === 'chord');
+  els.tabInterval.classList.toggle('active', mode === 'interval');
+  els.tabFretboard.classList.toggle('active', mode === 'fretboard');
+  els.tabCaged.classList.toggle('active', mode === 'caged');
+  renderFilters();
+  newQuestion();
+}
+
+els.tabChord.addEventListener('click', () => setMode('chord'));
+els.tabInterval.addEventListener('click', () => setMode('interval'));
+els.tabFretboard.addEventListener('click', () => setMode('fretboard'));
+els.tabCaged.addEventListener('click', () => setMode('caged'));
+
+els.filterToggle.addEventListener('click', () => {
+  const open = els.filterBody.classList.toggle('open');
+  els.filterToggle.classList.toggle('open', open);
+});
+
+els.selectAllBtn.addEventListener('click', () => {
+  const types = currentTypeMap();
+  const enabled = currentEnabledSet();
+  Object.keys(types).forEach(k => enabled.add(k));
+  renderFilters();
+});
+
+els.clearBtn.addEventListener('click', () => {
+  const enabled = currentEnabledSet();
+  enabled.clear();
+  renderFilters();
+  newQuestion();
+});
+
+els.checkBtn.addEventListener('click', checkAnswer);
+els.skipBtn.addEventListener('click', newQuestion);
+els.resetScoreBtn.addEventListener('click', () => {
+  score = {correct:0, total:0, streak:0};
+  updateScoreText();
+});
+
+els.answerInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    if(!answered) checkAnswer();
+    else newQuestion();
+  }
+});
+
+// init
+buildFretboardDOM();
+renderFilters();
+updateScoreText();
+newQuestion();
+</script>
+</body>
+</html>
